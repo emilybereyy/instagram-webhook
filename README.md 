@@ -1,0 +1,32 @@
+# Instagram to Telegram Bot
+
+Этот бот перехватывает сообщения из Instagram Direct и пересылает их в Telegram.
+
+## Установка
+
+1. Склонируйте репозиторий:
+
+    ```bash
+    git clone https://github.com/yourusername/instagram-webhook.git
+    cd instagram-webhook
+    ```
+
+2. Установите зависимости:
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+3. Создайте файл `.env` или установите следующие переменные окружения:
+
+    - `TG_TOKEN`: токен вашего Telegram-бота.
+    - `VERIFY_TOKEN`: ваш токен для верификации с Instagram.
+    - `IG_ACCESS_TOKEN`: токен доступа к Instagram API.
+
+4. Запустите сервер:
+
+    ```bash
+    gunicorn app:app
+    ```
+
+5. Настройте вебхуки для Instagram и Telegram.
