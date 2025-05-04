@@ -1,30 +1,26 @@
 from flask import Flask, request
 import requests
 import sqlite3
-import os
 
 app = Flask(__name__)
 
-# Токены
-TG_TOKEN = os.getenv("TG_TOKEN")
-TG_CHAT_ID = os.getenv("TG_CHAT_ID")  # ID чата для отправки сообщений
+# Жёстко прописанные токены
+TG_TOKEN = "7513240255:AAH-yboJ6FuZNSFzu2B_PhTfXVg38jZeU20"
+TG_CHAT_ID = "7513240255"
+VERIFY_TOKEN = "57195b7f55896549b7404fb404e78992"
+IG_ACCESS_TOKEN = "IGAATgxLArhi5BZAE9RYWd5TlRuanFrT2VTQ0xISjFBci1SZAm1HODJvZAnV3NTgzNzVwY19QTmRFdVJTb3ZAldlN2b3VrU1VqdFJlcDVCX2RXSlJHNzc5TllxTG1qVUlfQ192UkZAZARjFtUUxaX0Y5ejRvVlduZAFBZAdENCQ3k1emp1TQZDZD"
+GRAPH_API_URL = "https://graph.facebook.com/v18.0"
 TELEGRAM_API = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
 
-# Instagram
-VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
-IG_ACCESS_TOKEN = os.getenv("IG_ACCESS_TOKEN")
-GRAPH_API_URL = "https://graph.facebook.com/v18.0"
-
-# Создаем подключение к базе данных SQLite
+# База данных
 db = sqlite3.connect('mapping.db', check_same_thread=False)
 c = db.cursor()
 
-# Создаем таблицу для хранения связи между пользователями Instagram и сообщениями Telegram
 c.execute('''
 CREATE TABLE IF NOT EXISTS user_map (
-                ig_user_id TEXT,
-                tg_message_id INTEGER
-            )
+    ig_user_id TEXT,
+    tg_message_id INTEGER
+)
 ''')
 db.commit()
 
@@ -46,7 +42,6 @@ def instagram_webhook():
         data = request.json
         print("Incoming IG Message:", data)
 
-        # Перебираем все входящие сообщения
         for entry in data.get("entry", []):
             for messaging in entry.get("messaging", []):
                 sender_id = messaging["sender"]["id"]
@@ -56,8 +51,11 @@ def instagram_webhook():
                         "chat_id": TG_CHAT_ID,
                         "text": f"Instagram user {sender_id} says: {message_text}"
                     })
-                    c.execute("INSERT INTO user_map (ig_user_id, tg_message_id) VALUES (?, ?)", (sender_id, tg_response.json().get("message_id")))
-                    db.commit()
+                    if tg_response.ok:
+                        message_id = tg_response.json().get("result", {}).get("message_id")
+                        if message_id:
+                            c.execute("INSERT INTO user_map (ig_user_id, tg_message_id) VALUES (?, ?)", (sender_id, message_id))
+                            db.commit()
         return "OK", 200
 
 @app.route("/telegram", methods=["POST"])
@@ -70,7 +68,6 @@ def telegram_webhook():
         reply_text = message.get("text")
         replied_message_text = message["reply_to_message"]["text"]
 
-        # Извлекаем IG user ID из ответа
         if "Instagram user" in replied_message_text:
             ig_user_id = replied_message_text.split()[2]
             send_instagram_message(ig_user_id, reply_text)
