@@ -2,4 +2,5 @@
 __pycache__
 mapping.db
 .DS_Store
+gunicorn app:app
 
